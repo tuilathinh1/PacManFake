@@ -19,13 +19,13 @@ public class Ghost {
     private State state;
     private double cageTimer;
     private double moveTimer;
-    private int lastDir = -1; // Track last direction to avoid oscillation
-    private int stuckCounter = 0; // Count consecutive stuck states
+    private int lastDir = -1; // Theo dõi hướng trước đó
+    private int stuckCounter = 0; // Đếm số lần kẹt
     private static final double CAGE_EXIT_TIME = 2.0;
     private static final double SIGHT_RANGE_ENTER = 8.0;
-    private static final double SIGHT_RANGE_EXIT = 9.0; // Hysteresis for state transition
-    private static final double MOVE_INTERVAL = 0.18; // Slower than Pacman (0.15s)
-    private static final int MAX_STUCK_COUNT = 10; // Reset after 10 stuck updates
+    private static final double SIGHT_RANGE_EXIT = 9.0; // Trễ để ổn định trạng thái
+    private static final double MOVE_INTERVAL = 0.18; // Chậm hơn Pacman
+    private static final int MAX_STUCK_COUNT = 10; // Đặt lại sau 10 lần kẹt
 
     public Ghost(int x, int y, Color color, int[][] gameMap, int[] DX, int[] DY, int COLS, int ROWS, Pacman pacman) {
         this.x = x;
@@ -50,7 +50,7 @@ public class Ghost {
         cageTimer += deltaTime;
         moveTimer += deltaTime;
 
-        // Get valid directions
+        // Lấy các hướng hợp lệ
         List<Integer> validDirections = new ArrayList<>();
         for (int i = 0; i < 4; i++) {
             int newX = x + DX[i];
@@ -60,7 +60,7 @@ public class Ghost {
             }
         }
 
-        // Handle no valid directions
+        // Xử lý khi không có hướng hợp lệ
         if (validDirections.isEmpty()) {
             stuckCounter++;
             if (dx != 0 || dy != 0) {
@@ -84,34 +84,32 @@ public class Ghost {
                         dx = 0;
                         dy = 0;
                         state = State.WANDER;
-                        System.out.println("Ghost stuck at (" + x + "," + y + "), state: " + state + ", resetting to WANDER");
+                        System.out.println("Ghost kẹt tại (" + x + "," + y + "), trạng thái: " + state + ", đặt lại thành WANDER");
                     }
                 }
             }
-            // Reset to start if stuck too long
             if (stuckCounter >= MAX_STUCK_COUNT) {
                 reset();
-                System.out.println("Ghost reset to start (" + x + "," + y + ") due to prolonged stuck state");
+                System.out.println("Ghost đặt lại về vị trí bắt đầu (" + x + "," + y + ") do kẹt quá lâu");
             }
-            System.out.println("Ghost at (" + x + "," + y + "), state: " + state + ", dx: " + dx + ", dy: " + dy + ", validDirections: " + validDirections);
+            System.out.println("Ghost tại (" + x + "," + y + "), trạng thái: " + state + ", dx: " + dx + ", dy: " + dy + ", validDirections: " + validDirections);
             return;
         } else {
             stuckCounter = 0;
         }
 
-        // Only update direction and move when moveTimer reaches interval
+        // Cập nhật hướng và di chuyển khi moveTimer đạt ngưỡng
         if (moveTimer >= MOVE_INTERVAL) {
             if (state == State.EXIT_CAGE) {
                 if (cageTimer >= CAGE_EXIT_TIME || y <= 10) {
                     state = State.WANDER;
                 }
-                // Prioritize moving up
                 int dir = validDirections.contains(3) ? 3 : validDirections.get(random.nextInt(validDirections.size()));
                 dx = DX[dir];
                 dy = DY[dir];
                 lastDir = dir;
             } else {
-                // Check if Pacman is in sight with hysteresis
+                // Chuyển đổi trạng thái với trễ
                 double distanceToPacman = Math.sqrt(Math.pow(x - pacman.x, 2) + Math.pow(y - pacman.y, 2));
                 if (state == State.CHASE && distanceToPacman > SIGHT_RANGE_EXIT) {
                     state = State.WANDER;
@@ -124,7 +122,7 @@ public class Ghost {
                     double minDistance = Double.MAX_VALUE;
                     dir = validDirections.get(0);
                     for (int i : validDirections) {
-                        if (lastDir != -1 && i == (lastDir + 2) % 4) continue; // Avoid reversing
+                        if (lastDir != -1 && i == (lastDir + 2) % 4) continue; // Tránh đảo ngược
                         int newX = x + DX[i];
                         int newY = y + DY[i];
                         double distance = Math.sqrt(Math.pow(newX - pacman.x, 2) + Math.pow(newY - pacman.y, 2));
@@ -133,28 +131,43 @@ public class Ghost {
                             dir = i;
                         }
                     }
-                } else {
-                    dir = (random.nextDouble() < 0.9) ? findDirectionToNearestDot(validDirections) : validDirections.get(random.nextInt(validDirections.size()));
-                    if (lastDir != -1 && validDirections.contains(lastDir) && dir == (lastDir + 2) % 4) {
-                        dir = validDirections.get(random.nextInt(validDirections.size())); // Avoid reversing
+                    dx = DX[dir];
+                    dy = DY[dir];
+                    lastDir = dir;
+                } else if (state == State.WANDER) {
+                    // Đoạn mã mới: Chọn hướng ngẫu nhiên, tránh hướng ngược lại
+                    moveTimer = 0;
+
+                    // Loại bỏ hướng ngược lại
+                    List<Integer> candidates = new ArrayList<>();
+                    for (int d : validDirections) {
+                        if (lastDir == -1 || d != (lastDir + 2) % 4) { // Tránh đi lùi
+                            candidates.add(d);
+                        }
                     }
+
+                    // Nếu không còn hướng nào khác, dùng tất cả hướng hợp lệ
+                    if (candidates.isEmpty()) {
+                        candidates = validDirections;
+                    }
+
+                    int chosenDir = candidates.get(random.nextInt(candidates.size()));
+                    dx = DX[chosenDir];
+                    dy = DY[chosenDir];
+                    lastDir = chosenDir;
                 }
-                dx = DX[dir];
-                dy = DY[dir];
-                lastDir = dir;
             }
 
             x += dx;
             y += dy;
 
-            // Tunnel effect
+            // Hiệu ứng đường hầm
             if (x < 0) x = COLS - 1;
             if (x >= COLS) x = 0;
             if (y < 0) y = ROWS - 1;
             if (y >= ROWS) y = 0;
 
-            moveTimer = 0;
-            System.out.println("Ghost moved to (" + x + "," + y + "), state: " + state + ", dx: " + dx + ", dy: " + dy + ", validDirections: " + validDirections);
+            System.out.println("Ghost di chuyển đến (" + x + "," + y + "), trạng thái: " + state + ", dx: " + dx + ", dy: " + dy + ", validDirections: " + validDirections);
         }
     }
 
@@ -167,11 +180,10 @@ public class Ghost {
             for (int j = Math.max(0, x - 10); j < Math.min(COLS, x + 11); j++) {
                 if (gameMap[i][j] == 0 || gameMap[i][j] == 3) {
                     for (int dir : validDirections) {
-                        if (lastDir != -1 && dir == (lastDir + 2) % 4) continue; // Avoid reversing
+                        if (lastDir != -1 && dir == (lastDir + 2) % 4) continue;
                         int newX = x + DX[dir];
                         int newY = y + DY[dir];
                         double distance = Math.sqrt(Math.pow(newX - j, 2) + Math.pow(newY - i, 2));
-                        // Score based on distance and 2-step lookahead
                         int score = countValidNeighbors(newX, newY);
                         for (int k = 0; k < 4; k++) {
                             int nextX = newX + DX[k];
@@ -222,7 +234,7 @@ public class Ghost {
         }
         boolean valid = gameMap[y][x] != 1;
         if (!valid) {
-            System.out.println("Invalid move for Ghost at (" + x + "," + y + "), map value: " + gameMap[y][x]);
+            System.out.println("Di chuyển không hợp lệ cho Ghost tại (" + x + "," + y + "), giá trị bản đồ: " + gameMap[y][x]);
         }
         return valid;
     }
