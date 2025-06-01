@@ -5,7 +5,9 @@ import java.awt.geom.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-
+import javax.sound.sampled.*;
+import java.io.IOException;
+import java.net.URL;
 
 public class PacmanGame extends JPanel implements KeyListener, Runnable {
     private static final int BOARD_WIDTH = 900;
@@ -14,6 +16,8 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
     private static final int CELL_SIZE = 30;
     private static final int ROWS = 24;
     private static final int COLS = 30;
+
+    private Clip backgroundMusic;
 
     private boolean gameRunning = true;
     private boolean gameStarted = false;
@@ -90,10 +94,44 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
         initializeGame();
         pauseMenu = new PauseMenu(this);
 
+        // Gọi phương thức tải nhạc
+        loadBackgroundMusic("/nhacnengame.wav"); // Đảm bảo đường dẫn này đúng
+
         Thread gameThread = new Thread(this);
         gameThread.start();
 
         requestFocusInWindow();
+    } // Đóng ngoặc nhọn của constructor
+
+    private void loadBackgroundMusic(String filePath) {
+        try {
+            URL soundUrl = getClass().getResource(filePath);
+            if (soundUrl == null) {
+                System.err.println("Sound file not found: " + filePath);
+                return;
+            }
+            AudioInputStream audioStream = AudioSystem.getAudioInputStream(soundUrl);
+
+    backgroundMusic = AudioSystem.getClip(); // Gán vào biến toàn cục
+
+        backgroundMusic.open(audioStream); // Mở trước khi gọi loop
+        backgroundMusic.loop(Clip.LOOP_CONTINUOUSLY); // Lặp nhạc
+        backgroundMusic.start();
+        } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void startBackgroundMusic() {
+        if (backgroundMusic != null && !backgroundMusic.isRunning()) {
+            backgroundMusic.start();
+        }
+    }
+
+    public void stopBackgroundMusic() {
+        if (backgroundMusic != null && backgroundMusic.isRunning()) {
+            backgroundMusic.stop();
+        }
     }
 
     private void initializeGame() {
@@ -130,6 +168,9 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
 
                 if (gameRunning && gameStarted && !paused) {
                     update(deltaTime);
+                    startBackgroundMusic(); // Bắt đầu nhạc khi game đang chạy và không tạm dừng
+                } else {
+                    stopBackgroundMusic();
                 }
                 repaint();
 
@@ -208,6 +249,7 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
         removeAll();
         startMenu = new StartMenu(this);
         add(startMenu, BorderLayout.CENTER);
+        stopBackgroundMusic();
 
         gameMap = new int[][] {
             {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
@@ -399,9 +441,9 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
             int pupilSize = 3;
             int pupilOffset = 1;
             g2d.fill(new Ellipse2D.Float(x - radius/2 - pupilSize/2 + ghost.dx * pupilOffset,
-                                       y - radius/2 + ghost.dy * pupilOffset, pupilSize, pupilSize));
+                                         y - radius/2 + ghost.dy * pupilOffset, pupilSize, pupilSize));
             g2d.fill(new Ellipse2D.Float(x + radius/2 - pupilSize/2 + ghost.dx * pupilOffset,
-                                       y - radius/2 + ghost.dy * pupilOffset, pupilSize, pupilSize));
+                                         y - radius/2 + ghost.dy * pupilOffset, pupilSize, pupilSize));
         }
     }
 
@@ -433,22 +475,22 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
         }
         switch (e.getKeyCode()) {
             case KeyEvent.VK_UP:
-             case KeyEvent.VK_W:
+            case KeyEvent.VK_W:
                 pacman.setNextDirection(UP);
                 pacman.setMoving(true);
                 break;
             case KeyEvent.VK_DOWN:
-              case KeyEvent.VK_S:
+            case KeyEvent.VK_S:
                 pacman.setNextDirection(DOWN);
                 pacman.setMoving(true);
                 break;
             case KeyEvent.VK_LEFT:
-             case KeyEvent.VK_A:
+            case KeyEvent.VK_A:
                 pacman.setNextDirection(LEFT);
                 pacman.setMoving(true);
                 break;
             case KeyEvent.VK_RIGHT:
-             case KeyEvent.VK_D:
+            case KeyEvent.VK_D:
                 pacman.setNextDirection(RIGHT);
                 pacman.setMoving(true);
                 break;
@@ -481,13 +523,20 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
 
     public void setGameStarted(boolean started) {
         gameStarted = started;
+        if (started) {
+            startBackgroundMusic();
+        } else {
+            stopBackgroundMusic();
+        }
     }
 
     public void setPaused(boolean paused) {
         this.paused = paused;
         if (paused) {
+            stopBackgroundMusic();
             add(pauseMenu, BorderLayout.CENTER);
         } else {
+            startBackgroundMusic();
             remove(pauseMenu);
             requestFocusInWindow();
         }
