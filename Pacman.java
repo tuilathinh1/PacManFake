@@ -1,5 +1,3 @@
-package Test1;
-
 public class Pacman {
     public int x, y;
     private int direction = 0; // 0: right, 1: down, 2: left, 3: up
