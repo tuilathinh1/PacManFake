@@ -1,8 +1,20 @@
 import javax.swing.*;
 import java.awt.*;
+import java.io.IOException;
+import javax.imageio.ImageIO;
 
 public class StartMenu extends JPanel {
+    private Image backgroundImage;
+
     public StartMenu(PacmanGame game) {
+        // Load the background image
+        try {
+            backgroundImage = ImageIO.read(getClass().getResource("/BackGround.jpg")); // Adjust path as needed
+        } catch (IOException e) {
+            e.printStackTrace();
+            backgroundImage = null; // Fallback if image fails to load
+        }
+
         setBackground(Color.BLACK);
         setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
@@ -55,5 +67,12 @@ public class StartMenu extends JPanel {
         add(startButton, gbc);
         add(instructionsButton, gbc);
         add(exitButton, gbc);
+    }
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        if (backgroundImage != null) {
+            g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
+        }
     }
 }
