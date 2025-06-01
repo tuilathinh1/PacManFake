@@ -14,28 +14,26 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
     private static final int ROWS = 24;
     private static final int COLS = 30;
 
-    // Game state
     private boolean gameRunning = true;
     private boolean gameStarted = false;
-    private boolean gameWon = false; // New variable to track win state
+    private boolean gameWon = false;
     private int score = 0;
     private int lives = 3;
     private int totalDots = 0;
     private int dotsEaten = 0;
 
-    // Animation variables
     private long lastTime = System.nanoTime();
     private double animationTime = 0;
     private double mouthAnimation = 0;
     private double ghostAnimation = 0;
 
-    // Game entities
     private Pacman pacman;
     private List<Ghost> ghosts;
     private Random random = new Random();
     private StartMenu startMenu;
+    private boolean paused = false;
+    private PauseMenu pauseMenu;
 
-    // Game map
     private int[][] gameMap = {
         {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
         {1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
@@ -63,7 +61,6 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
         {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
     };
 
-    // Direction constants
     private static final int RIGHT = 0, DOWN = 1, LEFT = 2, UP = 3;
     private static final int[] DX = {1, 0, -1, 0};
     private static final int[] DY = {0, 1, 0, -1};
@@ -90,6 +87,7 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
         startMenu = new StartMenu(this);
         add(startMenu, BorderLayout.CENTER);
         initializeGame();
+        pauseMenu = new PauseMenu(this);
 
         Thread gameThread = new Thread(this);
         gameThread.start();
@@ -101,10 +99,10 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
         pacman = new Pacman(14, 20, gameMap, DX, DY, COLS, ROWS);
 
         ghosts = new ArrayList<>();
-        ghosts.add(new Ghost(14, 11, new Color(255, 0, 0), gameMap, DX, DY, COLS, ROWS));
-        ghosts.add(new Ghost(15, 11, new Color(255, 184, 255), gameMap, DX, DY, COLS, ROWS));
-        ghosts.add(new Ghost(14, 12, new Color(0, 255, 255), gameMap, DX, DY, COLS, ROWS));
-        ghosts.add(new Ghost(15, 12, new Color(255, 184, 82), gameMap, DX, DY, COLS, ROWS));
+        ghosts.add(new Ghost(14, 11, new Color(255, 0, 0), gameMap, DX, DY, COLS, ROWS, pacman));
+        ghosts.add(new Ghost(15, 11, new Color(255, 184, 255), gameMap, DX, DY, COLS, ROWS, pacman));
+        ghosts.add(new Ghost(14, 12, new Color(0, 255, 255), gameMap, DX, DY, COLS, ROWS, pacman));
+        ghosts.add(new Ghost(15, 12, new Color(255, 184, 82), gameMap, DX, DY, COLS, ROWS, pacman));
 
         totalDots = 0;
         for (int i = 0; i < gameMap.length; i++) {
@@ -119,7 +117,7 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
         score = 0;
         lives = 3;
         gameRunning = true;
-        gameWon = false; // Initialize gameWon
+        gameWon = false;
     }
 
     @Override
@@ -130,12 +128,12 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
                 double deltaTime = (currentTime - lastTime) / 1_000_000_000.0;
                 lastTime = currentTime;
 
-                if (gameRunning && gameStarted) {
+                if (gameRunning && gameStarted && !paused) {
                     update(deltaTime);
                 }
                 repaint();
 
-                Thread.sleep(16); // ~60 FPS
+                Thread.sleep(16);
             } catch (Exception e) {
                 e.printStackTrace();
                 break;
@@ -154,19 +152,17 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
             if (points > 0) {
                 dotsEaten++;
             }
-
             for (Ghost ghost : ghosts) {
-                ghost.update();
+                ghost.update(0.15);
             }
-
-            checkCollisions();
             animationTime = 0;
         }
 
-        // Check win condition only if not already won
+        checkCollisions();
+
         if (!gameWon && dotsEaten >= totalDots) {
             gameWon = true;
-            gameRunning = false; // Stop game updates
+            gameRunning = false;
             SwingUtilities.invokeLater(() -> {
                 JOptionPane.showMessageDialog(this, "Chúc mừng! Bạn đã thắng!\nĐiểm: " + score);
                 resetGame();
@@ -195,9 +191,10 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
         }
     }
 
-    private void resetGame() {
+    public void resetGame() {
         gameStarted = false;
         gameWon = false;
+        paused = false;
         removeAll();
         startMenu = new StartMenu(this);
         add(startMenu, BorderLayout.CENTER);
@@ -214,8 +211,8 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
 
-    if (!gameStarted) {
-        return; // Start menu is handled by StartMenu panel
+        if (!gameStarted) {
+            return;
         }
 
         drawMap(g2d);
@@ -359,7 +356,7 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
     @Override
     public void keyPressed(KeyEvent e) {
         if (!gameStarted) {
-            return; // Key events handled by start menu buttons
+            return;
         }
         switch (e.getKeyCode()) {
             case KeyEvent.VK_UP:
@@ -377,6 +374,18 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
             case KeyEvent.VK_R:
                 if (!gameRunning) resetGame();
                 break;
+            case KeyEvent.VK_P:
+                if (gameStarted) {
+                    paused = !paused;
+                    if (!paused) {
+                        requestFocusInWindow();
+                    } else {
+                        add(pauseMenu, BorderLayout.CENTER);
+                        revalidate();
+                        repaint();
+                    }
+                }
+                break;
         }
     }
 
@@ -388,6 +397,17 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
 
     public void setGameStarted(boolean started) {
         gameStarted = started;
+    }
+
+    public void setPaused(boolean paused) {
+        this.paused = paused;
+        if (paused) {
+            add(pauseMenu, BorderLayout.CENTER);
+        } else {
+            remove(pauseMenu);
+        }
+        revalidate();
+        repaint();
     }
 
     public static void main(String[] args) {
