@@ -16,12 +16,12 @@ public class PauseMenu extends JPanel {
         buttonPanel.setBackground(new Color(0, 0, 0, 100)); // Semi-transparent black
         buttonPanel.setBorder(BorderFactory.createLineBorder(Color.YELLOW, 2));
 
-        JLabel titleLabel = new JLabel("TẠM DỪNG");
+        JLabel titleLabel = new JLabel("PAUSE");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 36));
         titleLabel.setForeground(Color.YELLOW);
         titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-        JButton resumeButton = new JButton("Tiếp tục");
+        JButton resumeButton = new JButton("CONTINUE");
         resumeButton.setFont(new Font("Arial", Font.PLAIN, 20));
         resumeButton.setBackground(Color.GREEN);
         resumeButton.setForeground(Color.BLACK);
@@ -32,7 +32,7 @@ public class PauseMenu extends JPanel {
             game.requestFocusInWindow();
         });
 
-        JButton mainMenuButton = new JButton("Màn hình chính");
+        JButton mainMenuButton = new JButton("Main Screen");
         mainMenuButton.setFont(new Font("Arial", Font.PLAIN, 20));
         mainMenuButton.setBackground(Color.CYAN);
         mainMenuButton.setForeground(Color.BLACK);
@@ -42,7 +42,7 @@ public class PauseMenu extends JPanel {
             game.resetGame();
         });
 
-        JButton exitButton = new JButton("Thoát");
+        JButton exitButton = new JButton("Exit");
         exitButton.setFont(new Font("Arial", Font.PLAIN, 20));
         exitButton.setBackground(Color.RED);
         exitButton.setForeground(Color.WHITE);

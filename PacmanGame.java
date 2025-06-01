@@ -163,7 +163,7 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
             gameWon = true;
             gameRunning = false;
             SwingUtilities.invokeLater(() -> {
-                JOptionPane.showMessageDialog(this, "Chúc mừng! Bạn đã thắng!\nĐiểm: " + score);
+                JOptionPane.showMessageDialog(this, "You win! Your score: " + score);
                 resetGame();
                 requestFocusInWindow();
             });
@@ -183,7 +183,7 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
                         if (lives <= 0) {
                             gameRunning = false;
                             SwingUtilities.invokeLater(() -> {
-                                JOptionPane.showMessageDialog(this, "Game Over!\nĐiểm cuối: " + score);
+                                JOptionPane.showMessageDialog(this, "Game Over!\nYour score: " + score);
                                 resetGame();
                                 requestFocusInWindow();
                             });
@@ -407,18 +407,18 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
     private void drawUI(Graphics2D g2d) {
         g2d.setColor(Color.YELLOW);
         g2d.setFont(new Font("Arial", Font.BOLD, 24));
-        g2d.drawString("Điểm: " + score, 20, 30);
+        g2d.drawString("Score: " + score, 20, 30);
 
         g2d.setColor(Color.RED);
-        g2d.drawString("Mạng: " + lives, 200, 30);
+        g2d.drawString("Lives: " + lives, 200, 30);
 
         g2d.setColor(Color.WHITE);
-        g2d.drawString("Tiến độ: " + dotsEaten + "/" + totalDots, 350, 30);
+        g2d.drawString("Progression: " + dotsEaten + "/" + totalDots, 350, 30);
 
         int progressWidth = 200;
         int progressHeight = 10;
         g2d.setColor(Color.GRAY);
-        g2d.fill(new Rectangle2D.Float(550, 20, progressWidth, progressHeight));
+        g2d.fill(new Rectangle2D.Float(600, 20, progressWidth, progressHeight));
 
         g2d.setColor(Color.GREEN);
         int fillWidth = (int)((double)dotsEaten / totalDots * progressWidth);
@@ -432,36 +432,43 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
         }
         switch (e.getKeyCode()) {
             case KeyEvent.VK_UP:
+             case KeyEvent.VK_W:
                 pacman.setNextDirection(UP);
                 pacman.setMoving(true);
                 break;
             case KeyEvent.VK_DOWN:
+              case KeyEvent.VK_S:
                 pacman.setNextDirection(DOWN);
                 pacman.setMoving(true);
                 break;
             case KeyEvent.VK_LEFT:
+             case KeyEvent.VK_A:
                 pacman.setNextDirection(LEFT);
                 pacman.setMoving(true);
                 break;
             case KeyEvent.VK_RIGHT:
+             case KeyEvent.VK_D:
                 pacman.setNextDirection(RIGHT);
                 pacman.setMoving(true);
                 break;
             case KeyEvent.VK_R:
                 if (!gameRunning) resetGame();
                 break;
-            case KeyEvent.VK_P:
-                if (gameStarted) {
-                    paused = !paused;
-                    if (!paused) {
-                        requestFocusInWindow();
-                    } else {
-                        add(pauseMenu, BorderLayout.CENTER);
-                        revalidate();
-                        repaint();
-                    }
+            case KeyEvent.VK_P: // Xử lý phím P
+            if (gameStarted) {
+                paused = !paused; // Đảo ngược trạng thái tạm dừng
+                if (paused) {
+                    // Khi tạm dừng, thêm PauseMenu
+                    add(pauseMenu, BorderLayout.CENTER);
+                } else {
+                    // Khi bỏ tạm dừng, loại bỏ PauseMenu
+                    remove(pauseMenu);
+                    requestFocusInWindow(); // Đảm bảo game panel lấy lại focus để nhận input
                 }
-                break;
+                revalidate(); // Cập nhật lại bố cục container
+                repaint();    // Vẽ lại giao diện
+            }
+            break;
         }
     }
 
