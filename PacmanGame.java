@@ -178,7 +178,8 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
                     gameRunning = false;
                     SwingUtilities.invokeLater(() -> {
                         JOptionPane.showMessageDialog(this, "Game Over!\nĐiểm cuối: " + score);
-                        resetGame();
+                        resetGame(); // Đảm bảo resetGame được gọi
+                        requestFocusInWindow(); // Đặt lại focus để nhận phím
                     });
                 } else {
                     pacman.reset();
@@ -195,10 +196,64 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
         gameStarted = false;
         gameWon = false;
         paused = false;
-        removeAll();
-        startMenu = new StartMenu(this);
+        removeAll(); // Xóa các thành phần UI (như pauseMenu)
+        startMenu = new StartMenu(this); // Tạo lại StartMenu
         add(startMenu, BorderLayout.CENTER);
-        initializeGame();
+        
+        // Khởi tạo lại gameMap
+        gameMap = new int[][] {
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+            {1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+            {1,0,1,1,1,1,0,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,0,1,1,1,1,0,1},
+            {1,3,1,1,1,1,0,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,0,1,1,1,1,3,1},
+            {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+            {1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1},
+            {1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1},
+            {1,1,1,1,1,1,0,1,1,1,1,1,2,1,1,1,1,2,1,1,1,1,1,0,1,1,1,1,1,1},
+            {2,2,2,2,2,1,0,1,1,1,1,1,2,1,1,1,1,2,1,1,1,1,1,0,1,2,2,2,2,2},
+            {1,1,1,1,1,1,0,1,1,2,2,2,2,2,2,2,2,2,2,2,2,1,1,0,1,1,1,1,1,1},
+            {2,2,2,2,2,2,0,2,2,2,1,1,1,1,2,2,1,1,1,1,2,2,2,0,2,2,2,2,2,2},
+            {1,1,1,1,1,1,0,1,1,2,1,2,2,2,2,2,2,2,2,1,2,1,1,0,1,1,1,1,1,1},
+            {2,2,2,2,2,1,0,1,1,2,1,2,2,2,2,2,2,2,2,1,2,1,1,0,1,2,2,2,2,2},
+            {1,1,1,1,1,1,0,1,1,2,1,1,1,1,1,1,1,1,1,1,2,1,1,0,1,1,1,1,1,1},
+            {2,2,2,2,2,2,0,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,2,2,2,2,2,2},
+            {1,1,1,1,1,1,0,1,1,1,1,1,2,1,1,1,1,2,1,1,1,1,1,0,1,1,1,1,1,1},
+            {1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1},
+            {1,0,1,1,1,1,0,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,0,1,1,1,1,0,1},
+            {1,3,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,3,1},
+            {1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1},
+            {1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1},
+            {1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1},
+            {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+        };
+        
+        // Khởi tạo lại các đối tượng và trạng thái
+        pacman = new Pacman(14, 20, gameMap, DX, DY, COLS, ROWS);
+        ghosts = new ArrayList<>();
+        ghosts.add(new Ghost(14, 11, new Color(255, 0, 0), gameMap, DX, DY, COLS, ROWS, pacman));
+        ghosts.add(new Ghost(15, 11, new Color(255, 184, 255), gameMap, DX, DY, COLS, ROWS, pacman));
+        ghosts.add(new Ghost(14, 12, new Color(0, 255, 255), gameMap, DX, DY, COLS, ROWS, pacman));
+        ghosts.add(new Ghost(15, 12, new Color(255, 184, 82), gameMap, DX, DY, COLS, ROWS, pacman));
+        
+        // Đặt lại các biến trạng thái
+        totalDots = 0;
+        for (int i = 0; i < gameMap.length; i++) {
+            for (int j = 0; j < gameMap[i].length; j++) {
+                if (gameMap[i][j] == 0 || gameMap[i][j] == 3) {
+                    totalDots++;
+                }
+            }
+        }
+        score = 0;
+        dotsEaten = 0;
+        lives = 3;
+        gameRunning = true;
+        gameWon = false;
+        animationTime = 0;
+        mouthAnimation = 0;
+        ghostAnimation = 0;
+        
         revalidate();
         repaint();
     }
@@ -361,15 +416,19 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
         switch (e.getKeyCode()) {
             case KeyEvent.VK_UP:
                 pacman.setNextDirection(UP);
+                pacman.setMoving(true);
                 break;
             case KeyEvent.VK_DOWN:
                 pacman.setNextDirection(DOWN);
+                pacman.setMoving(true);
                 break;
             case KeyEvent.VK_LEFT:
                 pacman.setNextDirection(LEFT);
+                pacman.setMoving(true);
                 break;
             case KeyEvent.VK_RIGHT:
                 pacman.setNextDirection(RIGHT);
+                pacman.setMoving(true);
                 break;
             case KeyEvent.VK_R:
                 if (!gameRunning) resetGame();

@@ -8,6 +8,7 @@ public class Pacman {
     private int[] DY;
     private int COLS;
     private int ROWS;
+    private boolean isMoving = false;
 
     public Pacman(int x, int y, int[][] gameMap, int[] DX, int[] DY, int COLS, int ROWS) {
         this.x = x;
@@ -25,7 +26,12 @@ public class Pacman {
         this.nextDirection = dir;
     }
 
+    public void setMoving(boolean moving) {
+        this.isMoving = moving;
+    }
+
     public int update() {
+        if (!isMoving) return 0;
         int pointsEaten = 0;
 
         // Try to change direction
@@ -66,6 +72,7 @@ public class Pacman {
         y = startY;
         direction = 0;
         nextDirection = 0;
+        isMoving = false;
     }
 
     private boolean isValidMove(int x, int y) {
