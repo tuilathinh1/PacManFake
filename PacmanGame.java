@@ -96,9 +96,8 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
     }
 
     private void initializeGame() {
-        pacman = new Pacman(14, 20, gameMap, DX, DY, COLS, ROWS);
-
         ghosts = new ArrayList<>();
+        pacman = new Pacman(14, 20, gameMap, DX, DY, COLS, ROWS, ghosts);
         ghosts.add(new Ghost(14, 11, new Color(255, 0, 0), gameMap, DX, DY, COLS, ROWS, pacman));
         ghosts.add(new Ghost(15, 11, new Color(255, 184, 255), gameMap, DX, DY, COLS, ROWS, pacman));
         ghosts.add(new Ghost(14, 12, new Color(0, 255, 255), gameMap, DX, DY, COLS, ROWS, pacman));
@@ -166,28 +165,37 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
             SwingUtilities.invokeLater(() -> {
                 JOptionPane.showMessageDialog(this, "Chúc mừng! Bạn đã thắng!\nĐiểm: " + score);
                 resetGame();
+                requestFocusInWindow();
             });
         }
     }
 
     private void checkCollisions() {
-        for (Ghost ghost : ghosts) {
-            if (ghost.x == pacman.x && ghost.y == pacman.y) {
-                lives--;
-                if (lives <= 0) {
-                    gameRunning = false;
-                    SwingUtilities.invokeLater(() -> {
-                        JOptionPane.showMessageDialog(this, "Game Over!\nĐiểm cuối: " + score);
-                        resetGame(); // Đảm bảo resetGame được gọi
-                        requestFocusInWindow(); // Đặt lại focus để nhận phím
-                    });
-                } else {
-                    pacman.reset();
-                    for (Ghost g : ghosts) {
-                        g.reset();
+        if (ghosts != null) {
+            for (Ghost ghost : ghosts) {
+                double distance = Math.sqrt(Math.pow(ghost.x - pacman.x, 2) + Math.pow(ghost.y - pacman.y, 2));
+                if (distance < 0.5) { // Ngưỡng va chạm
+                    if (ghost.isFrightened()) {
+                        score += 200; // Điểm thưởng khi ăn ma
+                        ghost.reset();
+                    } else {
+                        lives--;
+                        if (lives <= 0) {
+                            gameRunning = false;
+                            SwingUtilities.invokeLater(() -> {
+                                JOptionPane.showMessageDialog(this, "Game Over!\nĐiểm cuối: " + score);
+                                resetGame();
+                                requestFocusInWindow();
+                            });
+                        } else {
+                            pacman.reset();
+                            for (Ghost g : ghosts) {
+                                g.reset();
+                            }
+                        }
                     }
+                    break;
                 }
-                break;
             }
         }
     }
@@ -196,11 +204,10 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
         gameStarted = false;
         gameWon = false;
         paused = false;
-        removeAll(); // Xóa các thành phần UI (như pauseMenu)
-        startMenu = new StartMenu(this); // Tạo lại StartMenu
+        removeAll();
+        startMenu = new StartMenu(this);
         add(startMenu, BorderLayout.CENTER);
-        
-        // Khởi tạo lại gameMap
+
         gameMap = new int[][] {
             {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
             {1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
@@ -227,16 +234,14 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
             {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
             {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
         };
-        
-        // Khởi tạo lại các đối tượng và trạng thái
-        pacman = new Pacman(14, 20, gameMap, DX, DY, COLS, ROWS);
+
         ghosts = new ArrayList<>();
+        pacman = new Pacman(14, 20, gameMap, DX, DY, COLS, ROWS, ghosts);
         ghosts.add(new Ghost(14, 11, new Color(255, 0, 0), gameMap, DX, DY, COLS, ROWS, pacman));
         ghosts.add(new Ghost(15, 11, new Color(255, 184, 255), gameMap, DX, DY, COLS, ROWS, pacman));
         ghosts.add(new Ghost(14, 12, new Color(0, 255, 255), gameMap, DX, DY, COLS, ROWS, pacman));
         ghosts.add(new Ghost(15, 12, new Color(255, 184, 82), gameMap, DX, DY, COLS, ROWS, pacman));
-        
-        // Đặt lại các biến trạng thái
+
         totalDots = 0;
         for (int i = 0; i < gameMap.length; i++) {
             for (int j = 0; j < gameMap[i].length; j++) {
@@ -253,7 +258,7 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
         animationTime = 0;
         mouthAnimation = 0;
         ghostAnimation = 0;
-        
+
         revalidate();
         repaint();
     }
@@ -348,12 +353,24 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
             int y = ghost.y * CELL_SIZE + CELL_SIZE / 2 + UI_HEIGHT;
             int radius = CELL_SIZE / 2 - 2;
 
+            Color ghostColor;
+            if (ghost.isFrightened()) {
+                // Nhấp nháy khi còn dưới 2 giây
+                double frightenedTimeLeft = 7.0 - ghost.getFrightenedTimer();
+                if (frightenedTimeLeft < 2.0) {
+                    ghostColor = (Math.sin(ghostAnimation * 5) > 0) ? Color.BLUE : Color.WHITE;
+                } else {
+                    ghostColor = Color.BLUE;
+                }
+            } else {
+                ghostColor = ghost.color;
+            }
+
             GradientPaint bodyGradient = new GradientPaint(
-                x, y - radius, ghost.color.brighter(),
-                x, y + radius, ghost.color.darker()
+                x, y - radius, ghostColor.brighter(),
+                x, y + radius, ghostColor.darker()
             );
             g2d.setPaint(bodyGradient);
-
             g2d.fill(new Arc2D.Float(x - radius, y - radius, radius * 2, radius * 2, 0, 180, Arc2D.PIE));
             g2d.fill(new Rectangle2D.Float(x - radius, y, radius * 2, radius));
 
@@ -464,9 +481,14 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
             add(pauseMenu, BorderLayout.CENTER);
         } else {
             remove(pauseMenu);
+            requestFocusInWindow();
         }
         revalidate();
         repaint();
+    }
+
+    public List<Ghost> getGhosts() {
+        return ghosts;
     }
 
     public static void main(String[] args) {
