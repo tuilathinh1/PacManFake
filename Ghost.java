@@ -74,15 +74,15 @@ public class Ghost {
             }
         }
 
-        // Lấy các hướng hợp lệ
-        List<Integer> validDirections = new ArrayList<>();
-        for (int i = 0; i < 4; i++) {
-            int newX = x + DX[i];
-            int newY = y + DY[i];
-            if (isValidMove(newX, newY)) {
-                validDirections.add(i);
-            }
+// Lấy các hướng hợp lệ
+    List<Integer> validDirections = new ArrayList<>();
+    for (int i = 0; i < 4; i++) {
+        int newX = x + DX[i];
+        int newY = y + DY[i];
+        if (isValidMove(newX, newY)) {
+            validDirections.add(i);
         }
+    }
 
         // Xử lý khi không có hướng hợp lệ
         if (validDirections.isEmpty()) {
@@ -120,16 +120,24 @@ public class Ghost {
             stuckCounter = 0;
         }
 
-        // Cập nhật hướng và di chuyển khi moveTimer đạt ngưỡng
-        if (moveTimer >= MOVE_INTERVAL) {
+    if (moveTimer >= MOVE_INTERVAL) {
             if (state == State.EXIT_CAGE) {
-                if (cageTimer >= CAGE_EXIT_TIME || y <= 10) {
-                    state = State.WANDER;
+                // Thoát lồng: ưu tiên di chuyển lên
+                if (validDirections.contains(3)) { // UP
+                    dx = DX[3];
+                    dy = DY[3];
+                    lastDir = 3;
+                } else {
+                    int dir = validDirections.get(random.nextInt(validDirections.size()));
+                    dx = DX[dir];
+                    dy = DY[dir];
+                    lastDir = dir;
                 }
-                int dir = validDirections.contains(3) ? 3 : validDirections.get(random.nextInt(validDirections.size()));
-                dx = DX[dir];
-                dy = DY[dir];
-                lastDir = dir;
+                // Chuyển sang WANDER khi thoát lồng
+                if (y <= 10 || cageTimer >= CAGE_EXIT_TIME) {
+                    state = State.WANDER;
+                    System.out.println("Ghost at (" + x + ", " + y + ") exited cage, switching to WANDER");
+                }
             } else if (state == State.FRIGHTENED) {
                 // Di chuyển ngẫu nhiên, tránh hướng ngược lại
                 List<Integer> candidates = new ArrayList<>();
@@ -237,17 +245,20 @@ public class Ghost {
         return count;
     }
 
-    public void reset() {
-        x = startX;
-        y = startY;
-        state = State.EXIT_CAGE;
-        cageTimer = 0;
-        moveTimer = 0;
-        dx = 0;
-        dy = -1;
-        lastDir = -1;
-        stuckCounter = 0;
-    }
+public void reset() {
+    x = startX;
+    y = startY;
+    state = State.EXIT_CAGE;
+    cageTimer = 0;
+    moveTimer = 0;
+    dx = 0;
+    dy = -1; // Hướng lên để thoát lồng
+    lastDir = 3; // Hướng lên (UP = 3)
+    stuckCounter = 0;
+    frightened = false;
+    frightenedTimer = 0;
+    System.out.println("Ghost reset to (" + x + ", " + y + "), State: " + state);
+}
 
     public boolean isFrightened() {
         return frightened;

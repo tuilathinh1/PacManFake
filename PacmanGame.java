@@ -1,10 +1,10 @@
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import javax.swing.*;
 
 
 public class PacmanGame extends JPanel implements KeyListener, Runnable {
@@ -147,18 +147,23 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
         ghostAnimation += deltaTime * 3;
 
         if (animationTime >= 0.15) {
+            // Cập nhật Pacman và kiểm tra va chạm
             int points = pacman.update();
             score += points;
             if (points > 0) {
                 dotsEaten++;
             }
+            System.out.println("Pacman updated to (" + pacman.x + ", " + pacman.y + ")");
+            checkCollisions(); // Kiểm tra va chạm ngay sau khi Pacman di chuyển
+
+            // Cập nhật từng ghost và kiểm tra va chạm
             for (Ghost ghost : ghosts) {
-                ghost.update(0.15);
+                ghost.update(0.15); // Logic trong Ghost xử lý MOVE_INTERVAL = 0.186
+                System.out.println("Ghost updated to (" + ghost.x + ", " + ghost.y + "), Frightened: " + ghost.isFrightened());
+                checkCollisions(); // Kiểm tra va chạm ngay sau khi ghost di chuyển
             }
             animationTime = 0;
         }
-
-        checkCollisions();
 
         if (!gameWon && dotsEaten >= totalDots) {
             gameWon = true;
@@ -174,13 +179,15 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
     private void checkCollisions() {
         if (ghosts != null) {
             for (Ghost ghost : ghosts) {
-                double distance = Math.sqrt(Math.pow(ghost.x - pacman.x, 2) + Math.pow(ghost.y - pacman.y, 2));
-                if (distance < 0.5) { // Ngưỡng va chạm
+                // Kiểm tra va chạm dựa trên ô hiện tại
+                if (pacman.x == ghost.x && pacman.y == ghost.y) {
+                    System.out.println("Collision detected at Pacman: (" + pacman.x + ", " + pacman.y + "), Ghost: (" + ghost.x + ", " + ghost.y + "), Frightened: " + ghost.isFrightened());
                     if (ghost.isFrightened()) {
                         score += 200; // Điểm thưởng khi ăn ma
                         ghost.reset();
                     } else {
                         lives--;
+                        System.out.println("Lives remaining: " + lives);
                         if (lives <= 0) {
                             gameRunning = false;
                             SwingUtilities.invokeLater(() -> {
@@ -349,7 +356,9 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
     }
 
     private void drawGhosts(Graphics2D g2d) {
+        System.out.println("Drawing " + ghosts.size() + " ghosts");
         for (Ghost ghost : ghosts) {
+            System.out.println("Drawing ghost at (" + ghost.x + ", " + ghost.y + ")");
             int x = ghost.x * CELL_SIZE + CELL_SIZE / 2;
             int y = ghost.y * CELL_SIZE + CELL_SIZE / 2 + UI_HEIGHT;
             int radius = CELL_SIZE / 2 - 2;
