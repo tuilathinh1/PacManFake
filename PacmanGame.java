@@ -1,0 +1,410 @@
+package Test1;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.awt.geom.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+public class PacmanGame extends JPanel implements KeyListener, Runnable {
+    private static final int BOARD_WIDTH = 900;
+    private static final int BOARD_HEIGHT = 720;
+    private static final int UI_HEIGHT = 50;
+    private static final int CELL_SIZE = 30;
+    private static final int ROWS = 24;
+    private static final int COLS = 30;
+
+    // Game state
+    private boolean gameRunning = true;
+    private boolean gameStarted = false;
+    private boolean gameWon = false; // New variable to track win state
+    private int score = 0;
+    private int lives = 3;
+    private int totalDots = 0;
+    private int dotsEaten = 0;
+
+    // Animation variables
+    private long lastTime = System.nanoTime();
+    private double animationTime = 0;
+    private double mouthAnimation = 0;
+    private double ghostAnimation = 0;
+
+    // Game entities
+    private Pacman pacman;
+    private List<Ghost> ghosts;
+    private Random random = new Random();
+    private StartMenu startMenu;
+
+    // Game map
+    private int[][] gameMap = {
+        {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,0,1,1,1,1,0,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,0,1,1,1,1,0,1},
+        {1,3,1,1,1,1,0,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,0,1,1,1,1,3,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1},
+        {1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1},
+        {1,1,1,1,1,1,0,1,1,1,1,1,2,1,1,1,1,2,1,1,1,1,1,0,1,1,1,1,1,1},
+        {2,2,2,2,2,1,0,1,1,1,1,1,2,1,1,1,1,2,1,1,1,1,1,0,1,2,2,2,2,2},
+        {1,1,1,1,1,1,0,1,1,2,2,2,2,2,2,2,2,2,2,2,2,1,1,0,1,1,1,1,1,1},
+        {2,2,2,2,2,2,0,2,2,2,1,1,1,1,2,2,1,1,1,1,2,2,2,0,2,2,2,2,2,2},
+        {1,1,1,1,1,1,0,1,1,2,1,2,2,2,2,2,2,2,2,1,2,1,1,0,1,1,1,1,1,1},
+        {2,2,2,2,2,1,0,1,1,2,1,2,2,2,2,2,2,2,2,1,2,1,1,0,1,2,2,2,2,2},
+        {1,1,1,1,1,1,0,1,1,2,1,1,1,1,1,1,1,1,1,1,2,1,1,0,1,1,1,1,1,1},
+        {2,2,2,2,2,2,0,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,2,2,2,2,2,2},
+        {1,1,1,1,1,1,0,1,1,1,1,1,2,1,1,1,1,2,1,1,1,1,1,0,1,1,1,1,1,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,0,1,1,1,1,0,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,0,1,1,1,1,0,1},
+        {1,3,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0,3,1},
+        {1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1},
+        {1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1},
+        {1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+    };
+
+    // Direction constants
+    private static final int RIGHT = 0, DOWN = 1, LEFT = 2, UP = 3;
+    private static final int[] DX = {1, 0, -1, 0};
+    private static final int[] DY = {0, 1, 0, -1};
+
+    public PacmanGame() {
+        setPreferredSize(new Dimension(BOARD_WIDTH, BOARD_HEIGHT + UI_HEIGHT));
+        setBackground(Color.BLACK);
+        setFocusable(true);
+        addKeyListener(this);
+
+        addFocusListener(new FocusListener() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                System.out.println("Game panel gained focus");
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                System.out.println("Game panel lost focus");
+            }
+        });
+
+        setLayout(new BorderLayout());
+        startMenu = new StartMenu(this);
+        add(startMenu, BorderLayout.CENTER);
+        initializeGame();
+
+        Thread gameThread = new Thread(this);
+        gameThread.start();
+
+        requestFocusInWindow();
+    }
+
+    private void initializeGame() {
+        pacman = new Pacman(14, 20, gameMap, DX, DY, COLS, ROWS);
+
+        ghosts = new ArrayList<>();
+        ghosts.add(new Ghost(14, 11, new Color(255, 0, 0), gameMap, DX, DY, COLS, ROWS));
+        ghosts.add(new Ghost(15, 11, new Color(255, 184, 255), gameMap, DX, DY, COLS, ROWS));
+        ghosts.add(new Ghost(14, 12, new Color(0, 255, 255), gameMap, DX, DY, COLS, ROWS));
+        ghosts.add(new Ghost(15, 12, new Color(255, 184, 82), gameMap, DX, DY, COLS, ROWS));
+
+        totalDots = 0;
+        for (int i = 0; i < gameMap.length; i++) {
+            for (int j = 0; j < gameMap[i].length; j++) {
+                if (gameMap[i][j] == 0 || gameMap[i][j] == 3) {
+                    totalDots++;
+                }
+            }
+        }
+        System.out.println("Total dots calculated: " + totalDots);
+        dotsEaten = 0;
+        score = 0;
+        lives = 3;
+        gameRunning = true;
+        gameWon = false; // Initialize gameWon
+    }
+
+    @Override
+    public void run() {
+        while (true) {
+            try {
+                long currentTime = System.nanoTime();
+                double deltaTime = (currentTime - lastTime) / 1_000_000_000.0;
+                lastTime = currentTime;
+
+                if (gameRunning && gameStarted) {
+                    update(deltaTime);
+                }
+                repaint();
+
+                Thread.sleep(16); // ~60 FPS
+            } catch (Exception e) {
+                e.printStackTrace();
+                break;
+            }
+        }
+    }
+
+    private void update(double deltaTime) {
+        animationTime += deltaTime;
+        mouthAnimation += deltaTime * 8;
+        ghostAnimation += deltaTime * 3;
+
+        if (animationTime >= 0.15) {
+            int points = pacman.update();
+            score += points;
+            if (points > 0) {
+                dotsEaten++;
+            }
+
+            for (Ghost ghost : ghosts) {
+                ghost.update();
+            }
+
+            checkCollisions();
+            animationTime = 0;
+        }
+
+        // Check win condition only if not already won
+        if (!gameWon && dotsEaten >= totalDots) {
+            gameWon = true;
+            gameRunning = false; // Stop game updates
+            SwingUtilities.invokeLater(() -> {
+                JOptionPane.showMessageDialog(this, "Chúc mừng! Bạn đã thắng!\nĐiểm: " + score);
+                resetGame();
+            });
+        }
+    }
+
+    private void checkCollisions() {
+        for (Ghost ghost : ghosts) {
+            if (ghost.x == pacman.x && ghost.y == pacman.y) {
+                lives--;
+                if (lives <= 0) {
+                    gameRunning = false;
+                    SwingUtilities.invokeLater(() -> {
+                        JOptionPane.showMessageDialog(this, "Game Over!\nĐiểm cuối: " + score);
+                        resetGame();
+                    });
+                } else {
+                    pacman.reset();
+                    for (Ghost g : ghosts) {
+                        g.reset();
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    private void resetGame() {
+        gameStarted = false;
+        gameWon = false;
+        removeAll();
+        startMenu = new StartMenu(this);
+        add(startMenu, BorderLayout.CENTER);
+        initializeGame();
+        revalidate();
+        repaint();
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        Graphics2D g2d = (Graphics2D) g;
+
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+
+    if (!gameStarted) {
+        return; // Start menu is handled by StartMenu panel
+        }
+
+        drawMap(g2d);
+        drawPacman(g2d);
+        drawGhosts(g2d);
+        drawUI(g2d);
+    }
+
+    private void drawMap(Graphics2D g2d) {
+        for (int i = 0; i < ROWS; i++) {
+            for (int j = 0; j < COLS; j++) {
+                int x = j * CELL_SIZE;
+                int y = i * CELL_SIZE + UI_HEIGHT;
+
+                if (gameMap[i][j] == 1) {
+                    GradientPaint gradient = new GradientPaint(
+                        x, y, new Color(0, 0, 150),
+                        x + CELL_SIZE, y + CELL_SIZE, new Color(0, 0, 255)
+                    );
+                    g2d.setPaint(gradient);
+                    g2d.fill(new Rectangle2D.Float(x, y, CELL_SIZE, CELL_SIZE));
+
+                    g2d.setColor(new Color(100, 100, 255));
+                    g2d.setStroke(new BasicStroke(1));
+                    g2d.draw(new Rectangle2D.Float(x, y, CELL_SIZE, CELL_SIZE));
+                } else if (gameMap[i][j] == 0) {
+                    g2d.setColor(new Color(255, 255, 0, 100));
+                    g2d.fill(new Ellipse2D.Float(x + CELL_SIZE/2 - 5, y + CELL_SIZE/2 - 5, 10, 10));
+                    g2d.setColor(Color.YELLOW);
+                    g2d.fill(new Ellipse2D.Float(x + CELL_SIZE/2 - 2, y + CELL_SIZE/2 - 2, 4, 4));
+                } else if (gameMap[i][j] == 3) {
+                    double pulse = Math.sin(animationTime * 5) * 0.3 + 0.7;
+                    int size = (int)(12 * pulse);
+                    g2d.setColor(new Color(255, 255, 0, (int)(150 * pulse)));
+                    g2d.fill(new Ellipse2D.Float(x + CELL_SIZE/2 - size, y + CELL_SIZE/2 - size, size * 2, size * 2));
+                    g2d.setColor(Color.YELLOW);
+                    g2d.fill(new Ellipse2D.Float(x + CELL_SIZE/2 - 6, y + CELL_SIZE/2 - 6, 12, 12));
+                }
+            }
+        }
+    }
+
+    private void drawPacman(Graphics2D g2d) {
+        int x = pacman.x * CELL_SIZE + CELL_SIZE / 2;
+        int y = pacman.y * CELL_SIZE + CELL_SIZE / 2 + UI_HEIGHT;
+        int radius = CELL_SIZE / 2 - 2;
+
+        RadialGradientPaint glowPaint = new RadialGradientPaint(
+            x, y, radius + 5,
+            new float[]{0f, 1f},
+            new Color[]{new Color(255, 255, 0, 100), new Color(255, 255, 0, 0)}
+        );
+        g2d.setPaint(glowPaint);
+        g2d.fill(new Ellipse2D.Float(x - radius - 5, y - radius - 5, (radius + 5) * 2, (radius + 5) * 2));
+
+        g2d.setColor(Color.YELLOW);
+        double mouthAngle = Math.abs(Math.sin(mouthAnimation)) * 60;
+        double startAngle = pacman.getDirection() * 90 - mouthAngle / 2;
+        double arcExtent = 360 - mouthAngle;
+
+        Arc2D.Float pacmanArc = new Arc2D.Float(
+            (float)(x - radius), (float)(y - radius), (float)(radius * 2), (float)(radius * 2),
+            (float)startAngle, (float)arcExtent, Arc2D.PIE
+        );
+        g2d.fill(pacmanArc);
+
+        g2d.setColor(Color.BLACK);
+        int eyeSize = 4;
+        double eyeAngle = Math.toRadians(pacman.getDirection() * 90 - 45);
+        int eyeX = x + (int)(radius * 0.3 * Math.cos(eyeAngle));
+        int eyeY = y + (int)(radius * 0.3 * Math.sin(eyeAngle));
+        g2d.fill(new Ellipse2D.Float(eyeX - eyeSize/2, eyeY - eyeSize/2, eyeSize, eyeSize));
+    }
+
+    private void drawGhosts(Graphics2D g2d) {
+        for (Ghost ghost : ghosts) {
+            int x = ghost.x * CELL_SIZE + CELL_SIZE / 2;
+            int y = ghost.y * CELL_SIZE + CELL_SIZE / 2 + UI_HEIGHT;
+            int radius = CELL_SIZE / 2 - 2;
+
+            GradientPaint bodyGradient = new GradientPaint(
+                x, y - radius, ghost.color.brighter(),
+                x, y + radius, ghost.color.darker()
+            );
+            g2d.setPaint(bodyGradient);
+
+            g2d.fill(new Arc2D.Float(x - radius, y - radius, radius * 2, radius * 2, 0, 180, Arc2D.PIE));
+            g2d.fill(new Rectangle2D.Float(x - radius, y, radius * 2, radius));
+
+            int zigzagHeight = 6;
+            int[] xPoints = new int[8];
+            int[] yPoints = new int[8];
+            double bounce = Math.sin(ghostAnimation + ghost.x) * 2;
+
+            for (int i = 0; i < 8; i++) {
+                xPoints[i] = x - radius + (i * radius / 3);
+                if (i % 2 == 0) {
+                    yPoints[i] = y + radius + (int)bounce;
+                } else {
+                    yPoints[i] = y + radius - zigzagHeight + (int)bounce;
+                }
+            }
+            g2d.fillPolygon(xPoints, yPoints, 8);
+
+            g2d.setColor(Color.WHITE);
+            int eyeSize = 6;
+            g2d.fill(new Ellipse2D.Float(x - radius/2 - eyeSize/2, y - radius/2, eyeSize, eyeSize));
+            g2d.fill(new Ellipse2D.Float(x + radius/2 - eyeSize/2, y - radius/2, eyeSize, eyeSize));
+
+            g2d.setColor(Color.BLACK);
+            int pupilSize = 3;
+            int pupilOffset = 1;
+            g2d.fill(new Ellipse2D.Float(x - radius/2 - pupilSize/2 + ghost.dx * pupilOffset,
+                                       y - radius/2 + ghost.dy * pupilOffset, pupilSize, pupilSize));
+            g2d.fill(new Ellipse2D.Float(x + radius/2 - pupilSize/2 + ghost.dx * pupilOffset,
+                                       y - radius/2 + ghost.dy * pupilOffset, pupilSize, pupilSize));
+        }
+    }
+
+    private void drawUI(Graphics2D g2d) {
+        g2d.setColor(Color.YELLOW);
+        g2d.setFont(new Font("Arial", Font.BOLD, 24));
+        g2d.drawString("Điểm: " + score, 20, 30);
+
+        g2d.setColor(Color.RED);
+        g2d.drawString("Mạng: " + lives, 200, 30);
+
+        g2d.setColor(Color.WHITE);
+        g2d.drawString("Tiến độ: " + dotsEaten + "/" + totalDots, 350, 30);
+
+        int progressWidth = 200;
+        int progressHeight = 10;
+        g2d.setColor(Color.GRAY);
+        g2d.fill(new Rectangle2D.Float(550, 20, progressWidth, progressHeight));
+
+        g2d.setColor(Color.GREEN);
+        int fillWidth = (int)((double)dotsEaten / totalDots * progressWidth);
+        g2d.fill(new Rectangle2D.Float(550, 20, fillWidth, progressHeight));
+    }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+        if (!gameStarted) {
+            return; // Key events handled by start menu buttons
+        }
+        switch (e.getKeyCode()) {
+            case KeyEvent.VK_UP:
+                pacman.setNextDirection(UP);
+                break;
+            case KeyEvent.VK_DOWN:
+                pacman.setNextDirection(DOWN);
+                break;
+            case KeyEvent.VK_LEFT:
+                pacman.setNextDirection(LEFT);
+                break;
+            case KeyEvent.VK_RIGHT:
+                pacman.setNextDirection(RIGHT);
+                break;
+            case KeyEvent.VK_R:
+                if (!gameRunning) resetGame();
+                break;
+        }
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) {}
+
+    @Override
+    public void keyReleased(KeyEvent e) {}
+
+    public void setGameStarted(boolean started) {
+        gameStarted = started;
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            JFrame frame = new JFrame("Pacman Game - Java Edition");
+            PacmanGame game = new PacmanGame();
+
+            frame.add(game);
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setResizable(false);
+            frame.pack();
+            frame.setLocationRelativeTo(null);
+            frame.setVisible(true);
+
+            game.requestFocusInWindow();
+        });
+    }
+}
