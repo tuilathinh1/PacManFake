@@ -1,7 +1,7 @@
-import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
 import javax.imageio.ImageIO;
+import javax.swing.*;
 
 public class StartMenu extends JPanel {
     private Image backgroundImage;
@@ -48,11 +48,12 @@ public class StartMenu extends JPanel {
         instructionsButton.addActionListener(e -> {
             JOptionPane.showMessageDialog(this,
                 "Guideline:\n" +
-                "- Use arrows to move Pacman.\n" +
-                "- Eat all the yellow dots to win.\n" +
+                "- Use arrows or awsd to move Pacman.\n" +
+                "- Eat all the yellow balls to win.\n" +
                 "- Avoid the ghosts or you will lose the game.\n" +
-                "- Eat big energy balls to gain points.\n" +
-                "- Press R to reset when game over.",
+                "- Eat big energy balls to eat ghosts when ghosts are blue color.\n" +
+                "- Press R to reset when game over. \n"+
+                "- Press P to pause game and press one more for continue.\n",
                 "Pacman Game Guide", JOptionPane.INFORMATION_MESSAGE);
         });
 
