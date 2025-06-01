@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+
 public class PacmanGame extends JPanel implements KeyListener, Runnable {
     private static final int BOARD_WIDTH = 900;
     private static final int BOARD_HEIGHT = 720;
@@ -422,7 +423,7 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
 
         g2d.setColor(Color.GREEN);
         int fillWidth = (int)((double)dotsEaten / totalDots * progressWidth);
-        g2d.fill(new Rectangle2D.Float(550, 20, fillWidth, progressHeight));
+        g2d.fill(new Rectangle2D.Float(600, 20, fillWidth, progressHeight));
     }
 
     @Override
