@@ -97,7 +97,7 @@ public class PacmanGame extends JPanel implements KeyListener, Runnable {
         pauseMenu = new PauseMenu(this);
 
         // Gọi phương thức tải nhạc
-        loadBackgroundMusic("/nhacnengame.wav"); // Đảm bảo đường dẫn này đúng
+        loadBackgroundMusic("/nhacgame.wav"); // Đảm bảo đường dẫn này đúng
 
         Thread gameThread = new Thread(this);
         gameThread.start();
